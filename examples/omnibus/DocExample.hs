@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Example where
+module DocExample where
 
 import Control.Monad.Catch (MonadThrow)
 import Data.Bifunctor (first)

@@ -33,20 +33,20 @@ flags:
 dependencies:
   - base >= 4.7 && < 5
   - bytestring
+  - exceptions
+  - massiv
   - microlens
   - microlens-th
+  - text
 
 library:
   source-dirs: src
   dependencies:
       - containers
-      - text
       - megaparsec
       - text-latin1
       - binary
       - vector
-      - massiv
-      - exceptions
 
 executables:
   omnibus:
@@ -61,9 +61,7 @@ executables:
     - JuicyPixels
     - fast-logger
     - vector
-    - text
     - statistics
-    - exceptions
 
 
 tests:
@@ -73,11 +71,8 @@ tests:
     dependencies:
     - fits-parse
     - containers
-    - exceptions
-    - massiv
     - tasty
     - tasty-hunit
-    - text
     - megaparsec
     - mtl
 
