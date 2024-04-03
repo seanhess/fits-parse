@@ -15,7 +15,11 @@ Definitions for the data types needed to parse an HDU in a FITS block.
   , TemplateHaskell
 #-}
 module Data.Fits
-    ( -- * Data payload functions
+
+  ( -- * How to use this library
+    -- $use
+
+    -- * Data payload functions
       parsePix
     , pixsUnwrapI
     , pixsUnwrapD
@@ -94,6 +98,46 @@ import Lens.Micro.TH ( makeLenses )
 
 import Data.Binary
 import Data.Binary.Get
+
+{- $use
+
+> import Data.Fits
+> import Data.Fits.Read
+> import Data.Bifunctor (first)
+> import Data.Text (unpack)
+> import Data.ByteString.Lazy qualified as LBS
+>
+> example :: IO ()
+> example = do
+>     bs <- LBS.readFile  "./fits_files/nso_dkist.fits"
+> 
+>     (tel, obs, dm) <- exampleIO bs
+> 
+>     putStrLn $ "TELESCOPE: " <> unpack tel
+>     putStrLn $ "OBSERVATORY: " <> unpack obs
+>     putStrLn $ "DATAMIN: " <> show dm
+> 
+>   where
+>     -- You can parse the file and lookup relevant data in 'IO' or 'Either String'
+>     exampleReadMyData :: MonadThrow m => ByteString -> m (Text, Text, Float)
+>     exampleReadMyData bs = do
+>       hdus <- readHDUs bs
+>       hdu <- getHDU "Main Binary Table" 1 hdus
+>       tel <- getKeyword "TELESCOP" toText hdu
+>       obs <- getKeyword "OBSRVTRY" toText hdu
+>       dm <- getKeyword "DATAMIN" toFloat hdu
+>       return (tel, obs, dm)
+> 
+>     exampleEither :: ByteString -> Either String (Text, Text, Float)
+>     exampleEither bs = first show $ exampleReadMyData bs
+> 
+>     exampleIO :: ByteString -> IO (Text, Text, Float)
+>     exampleIO = exampleReadMyData
+-}
+
+
+
+
 
 -- | A single record in the HDU is an eighty byte word.
 {-@ type HDURecordLength = {v:Int | v = 80} @-}
