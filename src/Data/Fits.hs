@@ -27,6 +27,10 @@ module Data.Fits
     , header
     , extension
     , mainData
+    , ImageData(..)
+    , imgDimensions
+    , imgData
+    , imageData
     , Pix(..)
 
       -- ** Header Data Types
@@ -318,6 +322,7 @@ lookup :: Keyword -> Header -> Maybe Value
 lookup k h = Map.lookup k (h ^. keywords)
 
 
+
 data Extension
     -- | Any header data unit can use the primary format. The first MUST be
     -- Primary. This is equivalent to having no extension
@@ -355,11 +360,22 @@ toText _ = Nothing
 data Dimensions = Dimensions
     { _bitpix :: BitPixFormat
     , _axes :: Axes
-    } deriving (Show, Eq)
+    } deriving (Eq)
 $(makeLenses ''Dimensions)
+
+instance Show Dimensions where
+  show d = intercalate "\n"
+    [ "Dimensions: "
+    , "    format = " <> show (d ^. bitpix)
+    , "    axes = " <> show (d ^. axes)
+    ]
 
 newtype Comment = Comment Text
     deriving (Show, Eq, Ord, IsString)
+
+
+
+
 
 
 {-| The 'HeaderDataUnit' is the full HDU. Both the header information is
@@ -379,5 +395,22 @@ instance Show HeaderDataUnit where
       [ "HeaderDataUnit:"
       , "  headers = " <> show (Map.size (hdu ^. header . keywords))
       , "  extension = " <> show (hdu ^. extension)
+      , "  dimensions = " <> show (hdu ^. dimensions)
       , "  mainData = " <> show (BL.length (hdu ^. mainData)) <> " Bytes"
       ]
+
+{-| Raw data for an Image
+-}
+data ImageData = ImageData {_imgDimensions :: Dimensions, _imgData :: BL.ByteString}
+$(makeLenses ''ImageData)
+
+instance Show ImageData where 
+  show img = intercalate "\n"
+    [ "ImageData:"
+    , "  data = " <> show (BL.length (img ^. imgData)) <> " Bytes"
+    , "  dimensions = " <> show (img ^. imgDimensions)
+    ]
+
+-- WARNING: we need to refactor to make this type-safe. Maybe beef up the Extension constructors?
+imageData :: HeaderDataUnit -> ImageData
+imageData hdu = ImageData (hdu ^. dimensions) (hdu ^. mainData)
