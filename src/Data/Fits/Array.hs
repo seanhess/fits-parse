@@ -111,7 +111,7 @@ runGetThrow get inp =
 
 -- | Encode an Array as an Image
 --
--- >>> encodeImage (Header []) array
+-- >>> encodeImage array
 -- ImageData:
 --   data = 78 Bytes
 --   dimensions =

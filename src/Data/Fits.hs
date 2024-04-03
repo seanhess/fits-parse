@@ -336,7 +336,7 @@ pixDimsByRow = reverse . pixDimsByCol
     that starts 2,880 bytes after the start of the 'HeaderData'.
 -}
 newtype Header = Header { _keywords :: Map Keyword Value }
-    deriving (Eq)
+    deriving (Eq, Monoid, Semigroup)
 $(makeLenses ''Header)
 
 instance Show Header where

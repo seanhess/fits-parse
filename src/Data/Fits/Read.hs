@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE OverloadedRecordDot #-}
 module Data.Fits.Read where
 
 import Control.Exception ( displayException, Exception )
@@ -29,15 +30,19 @@ readPrimaryHDU :: MonadThrow m => ByteString -> m HeaderDataUnit
 readPrimaryHDU bs = do
     either (throwM . ParseError) pure $ M.runParser parseHDU "FITS" bs
 
--- | Look up a keyword and parse it into the expected format
-getKeyword :: MonadThrow m => Text -> (Value -> Maybe a) -> HeaderDataUnit -> m a
-getKeyword k fromVal hdu = do
-    let key = Keyword k
-    v <- maybeError (MissingKey key) $ Map.lookup key (_keywords . _header $ hdu)
+-- | Look up a keyword in a HeaderDataUnit and parse it into the expected format
+getKeyword :: MonadThrow m => Keyword -> (Value -> Maybe a) -> HeaderDataUnit -> m a
+getKeyword key fromVal hdu = do
+    v <- getKeyword' key hdu._header
     maybeError (InvalidKey key v) $ fromVal v
+
+-- | Look up a keyword in a Header
+getKeyword' :: MonadThrow m => Keyword -> Header -> m Value
+getKeyword' key h = do
+    maybeError (MissingKey key) $ Map.lookup key h._keywords
   where
     findKey :: Keyword -> Header -> Maybe Value
-    findKey key h = Map.lookup key (_keywords h)
+    findKey key h = Map.lookup key h._keywords
 
 -- | Get the HDU at an index and fail with a readable error
 getHDU :: MonadThrow m => String -> Int -> [HeaderDataUnit] -> m HeaderDataUnit
