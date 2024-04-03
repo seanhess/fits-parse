@@ -1,11 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveAnyClass #-}
 module Data.Fits.Read where
 
-import Control.Exception ( displayException )
+import Control.Exception ( displayException, Exception )
+import Control.Monad.Catch (MonadThrow, throwM)
 import Data.Bifunctor ( first )
 import Data.ByteString.Lazy ( ByteString )
-import Data.Fits as Fits
-import Data.Fits.MegaParser
 import Data.Maybe ( listToMaybe )
 import Data.Text ( Text, unpack )
 import qualified Data.ByteString as BS
@@ -20,17 +20,17 @@ import Data.Fits (HeaderDataUnit(..))
 
 
 -- | Parse and read all HDUs in the input string
-readHDUs :: ByteString -> Either String [HeaderDataUnit]
+readHDUs :: MonadThrow m => ByteString -> m [HeaderDataUnit]
 readHDUs bs = do
-    first (show . ParseError) $ M.runParser parseHDUs "FITS" bs
+    either (throwM . ParseError) pure $ M.runParser parseHDUs "FITS" bs
 
 -- | Parse and read only the Primary HDU from the input string
-readPrimaryHDU :: ByteString -> Either String HeaderDataUnit
+readPrimaryHDU :: MonadThrow m => ByteString -> m HeaderDataUnit
 readPrimaryHDU bs = do
-    first (show . ParseError) $ M.runParser parseHDU "FITS" bs
+    either (throwM . ParseError) pure $ M.runParser parseHDU "FITS" bs
 
 -- | Look up a keyword and parse it into the expected format
-getKeyword :: Text -> (Value -> Maybe a) -> HeaderDataUnit -> Either String a
+getKeyword :: MonadThrow m => Text -> (Value -> Maybe a) -> HeaderDataUnit -> m a
 getKeyword k fromVal hdu = do
     let key = Keyword k
     v <- maybeError (MissingKey key) $ Map.lookup key (_keywords . _header $ hdu)
@@ -40,17 +40,13 @@ getKeyword k fromVal hdu = do
     findKey key h = Map.lookup key (_keywords h)
 
 -- | Get the HDU at an index and fail with a readable error
-getHDU :: String -> Int -> [HeaderDataUnit] -> Either String HeaderDataUnit
+getHDU :: MonadThrow m => String -> Int -> [HeaderDataUnit] -> m HeaderDataUnit
 getHDU name n hdus = do
     maybeError (MissingHDU name n) $ listToMaybe $ drop n hdus
 
-maybeError :: FitsError -> Maybe a -> Either String a
-maybeError e Nothing = Left (show e)
-maybeError _ (Just a) = Right a
-
-eitherFail :: MonadFail m => Either String a -> m a 
-eitherFail (Left e) = fail e
-eitherFail (Right a) = return a
+maybeError :: MonadThrow m => FitsError -> Maybe a -> m a
+maybeError e Nothing = throwM e
+maybeError _ (Just a) = pure a
 
 data FitsError
     = ParseError ParseErr
@@ -58,7 +54,7 @@ data FitsError
     | InvalidKey Keyword Value
     | MissingHDU String Int 
     | InvalidData String
-    deriving (Eq)
+    deriving (Eq, Exception)
 
 instance Show FitsError where
     show (ParseError e) = displayException e
@@ -84,7 +80,7 @@ instance Show FitsError where
 --     throwLeft (Right a) = return a
 --
 --     -- You can parse the file and lookup relevant data in the same function
---     exampleReadMyData :: ByteString -> Either String (Text, Text, Float)
+--     exampleReadMyData :: MonadThrow m => ByteString -> m (Text, Text, Float)
 --     exampleReadMyData bs = do
 --       hdus <- readHDUs bs
 --       hdu <- getHDU "Main Binary Table" 1 hdus

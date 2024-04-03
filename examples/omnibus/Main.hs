@@ -90,24 +90,24 @@ workOnFITS (FitsConfig i o) = do
     timeCache <- newTimeCache simpleTimeFormat
     withTimedFastLogger timeCache (LogStderr defaultBufSize) $ \logger -> do
         fits <- bs i
-        myLog logger $ "[DEBUG] input file size " ++ show (BS.length fits) ++ " bytes\n"
+        myLog logger $ "[DEBUG] input file size " ++ show (LBS.length fits) ++ " bytes\n"
         case readHDUs fits of
           Left err -> myLog logger ("[ERROR] cannot parse HDUs " ++ show err)
           Right hdus -> do
             myLog logger ("[DEBUG] found " ++ show (length hdus) ++ " hdu record(s)\n")
             mapM_ (processHDU logger) hdus
   where
-    bs (FileInput f) = BS.readFile f
-    bs StdInput = BS.hGetContents stdin
+    bs (FileInput f) = LBS.readFile f
+    bs StdInput = LBS.hGetContents stdin
 
 processHDU :: TimedFastLogger -> HeaderDataUnit -> IO ()
 processHDU logger hdu = do
     myLog logger $ "[DEBUG] Bit Format " ++ show bpf ++ "\n"
-    myLog logger $ "[DEBUG] data block size " ++ show (BS.length pd) ++ " bytes\n"
+    myLog logger $ "[DEBUG] data block size " ++ show (LBS.length pd) ++ " bytes\n"
     myLog logger $ "[DEBUG] " ++ show (length (hdu ^. dimensions . axes)) ++ " Axes\n"
     unless (null ax) (mapM_ logAxes (hdu ^. dimensions . axes))
     let pixCount = sum (pixDimsByCol $ (hdu ^. dimensions . axes))
-    pixs <- parsePix pixCount bpf (LBS.fromStrict pd)
+    pixs <- parsePix pixCount bpf pd
     let pxsI = if isBitPixInt bpf then pixsUnwrapI bpf pixs else []
         pxsD = if isBitPixFloat bpf then pixsUnwrapD bpf pixs else []
         pVI = V.fromList pxsI

@@ -61,7 +61,9 @@ executables:
     - JuicyPixels
     - fast-logger
     - vector
+    - text
     - statistics
+    - exceptions
 
 
 tests:
@@ -71,6 +73,7 @@ tests:
     dependencies:
     - fits-parse
     - containers
+    - exceptions
     - massiv
     - tasty
     - tasty-hunit

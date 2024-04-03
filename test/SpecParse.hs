@@ -16,14 +16,18 @@ import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as TE
 ---- local imports
 import qualified Data.Fits as Fits
+import Data.Fits (toText, toFloat)
 -- symbol based imports
 ---- base
 import Control.Monad ( forM_ )
+import Data.Bifunctor ( first )
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Exception (Exception(displayException), throwIO)
+import Control.Monad.Catch (MonadThrow)
 import Data.List ( unfoldr )
 ---- bytestring
 import Data.ByteString.Lazy ( ByteString )
+import qualified Data.ByteString.Lazy as BS
 ---- ghc
 import GHC.RTS.Flags (MiscFlags(numIoWorkerThreads))
 ---- microlens
@@ -31,7 +35,7 @@ import Lens.Micro ((^.))
 ---- mtl
 import Control.Monad.Writer ( MonadWriter, WriterT, execWriterT, tell)
 ---- text
-import Data.Text ( Text )
+import Data.Text ( Text, pack, unpack )
 ---- local-imports
 import Data.Fits ( Axes
                  , BitPixFormat(..)
@@ -277,7 +281,7 @@ sampleSpiral =
     it "should parse" $ do
       let fileSizeOnDisk = 1545444
       bs <- BL.readFile "./fits_files/Spiral_2_30_0_300_10_0_NoGrad.fits"
-      hdu <- eitherFail $ readPrimaryHDU bs
+      hdu <- readPrimaryHDU bs
       -- hdu.header.size.bitpix @?= ThirtyTwoBitFloat
       -- hdu.header.size.naxes @?= NAxes [621, 621]
       --
@@ -327,12 +331,12 @@ sampleNSO = do
   describe "NSO Sample FITS Parse" $ do
     bs <- liftIO $ BL.readFile "./fits_files/nso_dkist.fits"
     it "should parse empty primary header" $ do
-      h0 <- eitherFail $ readPrimaryHDU bs
+      h0 <- readPrimaryHDU bs
       -- first header doesn't have any data
       BL.length (h0 ^. mainData) @?= 0
 
     it "should parse both HDUs" $ do
-      hdus <- eitherFail $ readHDUs bs
+      hdus <- readHDUs bs
       length hdus @?= 2
       [_, h2] <- pure hdus
       Fits.lookup "INSTRUME" (h2 ^. header) @?= Just (String "VISP")
@@ -355,4 +359,3 @@ sampleNSO = do
         pCount :: Extension -> Int
         pCount (BinTable p h) = p
         pCount _ = 0
-
