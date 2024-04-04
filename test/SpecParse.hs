@@ -3,7 +3,7 @@
 module SpecParse where
 -- qualified imports
 ---- base
-import qualified Data.Map.Strict as Map
+import qualified Data.List as L
 ---- bytestring
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Lazy.Char8 as C8
@@ -69,7 +69,7 @@ tests = do
   continue
   fullRecord
   fullRecordLine
-  headerMap
+  headerList
   requiredHeaders
   dataArray
   sampleSpiral
@@ -211,30 +211,30 @@ continue = describe "Continue Keyword" $ do
               ]
 
       m <- parse parseHeader $ flattenKeywords h
-      Map.lookup "CAL_URL" m @?= Just (String "https://docs.dkist.nso.edu/projects/visp/en/v2.0.1/l0_to_l1_visp.html")
+      L.lookup "CAL_URL" m @?= Just (String "https://docs.dkist.nso.edu/projects/visp/en/v2.0.1/l0_to_l1_visp.html")
 
 
-headerMap :: Test ()
-headerMap = describe "full header" $ do
+headerList :: Test ()
+headerList = describe "full header" $ do
     it "should parse single header" $ do
         res <- parse parseHeader $ flattenKeywords ["KEY1='value'"]
-        Map.size res @?= 1
-        Map.lookup "KEY1" res @?= Just (String "value")
+        length res @?= 1
+        L.lookup "KEY1" res @?= Just (String "value")
 
     it "should parse multiple headers " $ do
         res <- parse parseHeader $ flattenKeywords ["KEY1='value'", "KEY2=  23"]
-        Map.size res @?= 2
-        Map.lookup "KEY2" res @?= Just (Integer 23)
+        length res @?= 2
+        L.lookup "KEY2" res @?= Just (Integer 23)
 
     it "should ignore comments" $ do
         res <- parse parseHeader $ flattenKeywords ["KEY1='value' / this is a comment"]
-        Map.size res @?= 1
-        Map.lookup "KEY1" res @?= Just (String "value")
+        length res @?= 1
+        L.lookup "KEY1" res @?= Just (String "value")
 
     it "should handle xtension" $ do
         res <- parse parseHeader $ flattenKeywords ["XTENSION= 'IMAGE   '"]
-        Map.size res @?= 1
-        Map.lookup "XTENSION" res @?= Just (String "IMAGE")
+        length res @?= 1
+        L.lookup "XTENSION" res @?= Just (String "IMAGE")
 
 
 requiredHeaders :: Test ()
@@ -260,7 +260,7 @@ requiredHeaders = describe "required headers" $ do
       let fakeData = "1234" -- Related to NAXIS!
       h <- parse parsePrimary $ flattenKeywords ["SIMPLE = T", "BITPIX = 8", "NAXIS=2", "NAXIS1=2", "NAXIS2=2", "TEST='hi'"] <> fakeData
       (h ^. extension) @?= Primary
-      Map.size (h ^. header . keywords) @?= 5
+      length (h ^. header . keywords) @?= 5
       Fits.lookup "NAXIS" (h ^. header) @?= Just (Integer 2) 
 
     it "should parse full extension" $ do
@@ -305,7 +305,7 @@ sampleNSOHeaders = do
               , "COMMENT     the FITS WCS keys describing the world coordinates of the array.    "
               ]
       m <- parse parseHeader $ flattenKeywords h
-      Map.size m @?= 1
+      length m @?= 1
 
 
     describe "sample header file" $ do

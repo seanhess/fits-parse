@@ -76,6 +76,7 @@ import qualified Data.Text as T
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Map as Map
+import qualified Data.List as L
 
 import Data.String (IsString)
 
@@ -335,13 +336,13 @@ pixDimsByRow = reverse . pixDimsByCol
     metadata, but also specifying how to make sense of the binary payload
     that starts 2,880 bytes after the start of the 'HeaderData'.
 -}
-newtype Header = Header { _keywords :: Map Keyword Value }
+newtype Header = Header { _keywords :: [(Keyword, Value)] }
     deriving (Eq, Monoid, Semigroup)
 $(makeLenses ''Header)
 
 instance Show Header where
   show h =
-    let kvs = Map.toList (h ^. keywords) :: [(Keyword, Value)]
+    let kvs = h ^. keywords :: [(Keyword, Value)]
     in T.unpack $ T.intercalate "\n" $ fmap line kvs
     where
       --
@@ -363,7 +364,7 @@ instance Show Header where
       val (String t) = T.unpack t
 
 lookup :: Keyword -> Header -> Maybe Value
-lookup k h = Map.lookup k (h ^. keywords)
+lookup k h = L.lookup k (h ^. keywords)
 
 
 
@@ -437,7 +438,7 @@ $(makeLenses ''HeaderDataUnit)
 instance Show HeaderDataUnit where
     show hdu = intercalate "\n" 
       [ "HeaderDataUnit:"
-      , "  headers = " <> show (Map.size (hdu ^. header . keywords))
+      , "  headers = " <> show (length (hdu ^. header . keywords))
       , "  extension = " <> show (hdu ^. extension)
       , "  dimensions = " <> show (hdu ^. dimensions)
       , "  mainData = " <> show (BL.length (hdu ^. mainData)) <> " Bytes"

@@ -92,11 +92,11 @@ wordsText = TL.toStrict . TE.decodeUtf8 . BL.pack
 
 
 -- | Consumes ALL header blocks until end, then all remaining space
-parseHeader :: Parser (Map Keyword Value)
+parseHeader :: Parser [(Keyword, Value)]
 parseHeader = do
     pairs <- M.manyTill parseRecordLine (M.string' "end")
     M.space -- consume space padding all the way to the end of the next 2880 bytes header block
-    return $ Map.fromList $ catMaybes pairs
+    return $ catMaybes pairs
 
 parseRecordLine :: Parser (Maybe (Keyword, Value))
 parseRecordLine = do

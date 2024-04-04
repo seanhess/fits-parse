@@ -12,6 +12,7 @@ import Data.Text ( Text, unpack )
 import qualified Data.ByteString as BS
 import qualified Data.Map.Lazy as Map
 import qualified Text.Megaparsec as M
+import qualified Data.List as L
 import Data.List ( find )
 
 ---- local imports
@@ -39,10 +40,10 @@ getKeyword key fromVal hdu = do
 -- | Look up a keyword in a Header
 getKeyword' :: MonadThrow m => Keyword -> Header -> m Value
 getKeyword' key h = do
-    maybeError (MissingKey key) $ Map.lookup key h._keywords
+    maybeError (MissingKey key) $ L.lookup key h._keywords
   where
     findKey :: Keyword -> Header -> Maybe Value
-    findKey key h = Map.lookup key h._keywords
+    findKey key h = L.lookup key h._keywords
 
 -- | Get the HDU at an index and fail with a readable error
 getHDU :: MonadThrow m => String -> Int -> [HeaderDataUnit] -> m HeaderDataUnit
