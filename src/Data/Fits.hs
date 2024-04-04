@@ -187,7 +187,7 @@ newtype Keyword = Keyword Text
 {-| `Value` datatype for discriminating valid FITS KEYWORD=VALUE types in an HDU. -}
 data Value
     = Integer Int
-    | Float Float
+    | Float Double
     | String Text
     | Logic LogicalConstant
     deriving (Show, Eq)
@@ -390,7 +390,7 @@ toInt :: Value -> Maybe Int
 toInt (Integer i) = Just i
 toInt _ = Nothing
 
-toFloat :: Value -> Maybe Float
+toFloat :: Value -> Maybe Double
 toFloat (Float n) = Just n
 toFloat _ = Nothing
 

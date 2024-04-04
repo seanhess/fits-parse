@@ -1,4 +1,5 @@
 {-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE NoFieldSelectors #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE NamedFieldPuns #-}
@@ -12,6 +13,7 @@ import Data.ByteString.Lazy (ByteString)
 import Data.Map qualified as M
 import Data.Text (pack, unpack, Text)
 import Control.Monad (replicateM_)
+import Data.String (IsString(..))
 import Data.Text qualified as T
 import Data.ByteString.Builder
 import Data.Char (toUpper)
@@ -60,36 +62,77 @@ headerMandatory dim = Header $ M.fromList $ core <> naxes dim._axes
     bitpix SixtyFourBitFloat = Integer (-64)
 
 
+-- renderHeader :: Header -> Builder
+-- renderHeader (Header m) = _
 
-renderKeywordValue :: Keyword -> Value -> Builder
+
+
+
+
+
+
+
+-- Keyworld Lines -----------------------------------------------------
+
+renderKeywordLine :: Keyword -> Value -> Maybe Comment -> Builder
+renderKeywordLine k v mc =
+  let kv = renderKeywordValue k v
+  in (addComment kv mc).builder
+  where
+    addComment kv Nothing = kv
+    addComment kv (Just c) =
+      let mx = 80 - kv.length
+      in kv <> renderComment mx c
+
+
+
+
+renderKeywordValue :: Keyword -> Value -> BuilderLine
 renderKeywordValue k v = mconcat
   [ renderKeyword k
-  , stringUtf8 "= "
+  , string "= "
   , renderValue v
   ]
 
-renderKeyword :: Keyword -> Builder
-renderKeyword (Keyword k) = justifyLeft 8 (unpack k)
+renderKeyword :: Keyword -> BuilderLine
+renderKeyword (Keyword k) = justifyLeft 8 $ string $ map toUpper $ take 8 $ unpack k
+
+renderComment :: Int -> Comment -> BuilderLine
+renderComment mx (Comment c) = string $ take mx $ " / " <> unpack c
+
 
 -- must appear in byte thirty
-renderValue :: Value -> Builder
+renderValue :: Value -> BuilderLine
 renderValue (Logic T) = justifyRight 30 "T"
 renderValue (Logic F) = justifyRight 30 "F"
--- WARNING: probably incorrect
-renderValue (Float n) = justifyRight 30 (show n)
-renderValue (Integer n) = justifyRight 30 (show n)
+renderValue (Float f) = justifyRight 30 $ string $ map toUpper $ show f
+renderValue (Integer n) = justifyRight 30 $ string $ show n
+renderValue (String s) = string $ unpack s
 
-justifyRight :: Int -> String -> Builder
-justifyRight n s = spaces (n - length s) <> stringUtf8 s
+justifyRight :: Int -> BuilderLine -> BuilderLine
+justifyRight n b = spaces (n - b.length) <> b
 
-justifyLeft :: Int -> String -> Builder
-justifyLeft n s = stringUtf8 s <> spaces (n - length s)
+justifyLeft :: Int -> BuilderLine -> BuilderLine
+justifyLeft n b = b <> spaces (n - b.length)
 
-spaces :: Int -> Builder
-spaces n = mconcat (replicate n $ charUtf8 ' ')
+spaces :: Int -> BuilderLine
+spaces n = BuilderLine n $ mconcat $ replicate n $ charUtf8 ' '
 
-renderFloat :: Float -> Builder
-renderFloat f = stringUtf8 $ map toUpper $ show f
+string :: String -> BuilderLine
+string s = BuilderLine (length s) (stringUtf8 s)
 
+lineBuilder :: BuilderLine -> Builder
+lineBuilder bl = bl.builder
+
+data BuilderLine = BuilderLine { length :: Int, builder :: Builder }
+
+instance IsString BuilderLine where
+  fromString = string
+
+instance Semigroup BuilderLine where
+  BuilderLine l b <> BuilderLine l2 b2 = BuilderLine (l + l2) (b <> b2)
+
+instance Monoid BuilderLine where
+  mempty = BuilderLine 0 mempty
 
 
